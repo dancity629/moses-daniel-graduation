@@ -265,32 +265,45 @@ html[data-theme="dark"] .bless-card svg{color:var(--gold-soft);}
 
 /* ---- Gallery ---- */
 #gallery{background:var(--bg-alt);}
-.gal-filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:32px;}
-.chip{padding:9px 18px; border-radius:100px; border:1px solid var(--line); font-size:13px; font-weight:600; color:var(--text-soft); transition:.2s;}
-.chip.active,.chip:hover{border-color:var(--gold); color:var(--text); background:rgba(212,175,55,.08);}
-.masonry{columns:4 220px; column-gap:16px;}
-@media(max-width:640px){.masonry{columns:2 160px;}}
-.gal-tile{break-inside:avoid; margin-bottom:16px; border-radius:14px; overflow:hidden; position:relative; cursor:zoom-in; box-shadow:var(--shadow);}
-.gal-tile .ph{
-  width:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85);
-  font-family:'Fraunces',serif; font-size:14px; text-align:center; padding:14px;
+.album-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px;}
+.album-card{
+  border-radius:18px; overflow:hidden; position:relative; cursor:pointer; box-shadow:var(--shadow);
+  border:1px solid var(--line); aspect-ratio:4/3.4; transition:transform .3s ease;
 }
-.gal-tile:nth-child(6n+1) .ph{height:230px; background:linear-gradient(155deg,var(--navy),var(--navy-2));}
-.gal-tile:nth-child(6n+2) .ph{height:170px; background:linear-gradient(155deg,var(--gold-deep),var(--gold));}
-.gal-tile:nth-child(6n+3) .ph{height:200px; background:linear-gradient(155deg,#334155,var(--navy));}
-.gal-tile:nth-child(6n+4) .ph{height:150px; background:linear-gradient(155deg,var(--gold),var(--gold-deep));}
-.gal-tile:nth-child(6n+5) .ph{height:250px; background:linear-gradient(155deg,var(--navy-2),#0B1220);}
-.gal-tile:nth-child(6n+6) .ph{height:185px; background:linear-gradient(155deg,var(--gold-soft),var(--gold-deep));}
+.album-card:hover{transform:translateY(-6px);}
+.album-cover{width:100%; height:100%; object-fit:cover; transition:transform .5s ease;}
+.album-card:hover .album-cover{transform:scale(1.06);}
+.album-cover-ph{width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85); font-family:'Fraunces',serif; font-size:15px; text-align:center; padding:14px; background:linear-gradient(155deg,var(--navy),var(--navy-2));}
+.album-overlay{position:absolute; inset:0; background:linear-gradient(transparent 40%,rgba(0,0,0,.68)); display:flex; flex-direction:column; justify-content:flex-end; padding:18px;}
+.album-name{color:#fff; font-family:'Fraunces',serif; font-weight:600; font-size:19px;}
+.album-count{color:rgba(255,255,255,.75); font-size:12px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; margin-top:3px;}
+.album-empty{color:var(--text-soft); font-size:13px; padding:28px; text-align:center; border:1px dashed var(--line); border-radius:14px;}
+
+.masonry{columns:3 200px; column-gap:16px;}
+@media(max-width:640px){.masonry{columns:2 150px;}}
+
+#albumModal{position:fixed; inset:0; background:rgba(6,10,20,.88); z-index:940; display:none; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto;}
+#albumModal.open{display:flex;}
+.album-modal-inner{max-width:1000px; width:100%; background:var(--bg); border-radius:22px; padding:28px; margin-top:20px;}
+.album-modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
+.album-modal-title{font-family:'Fraunces',serif; font-size:24px; font-weight:600;}
+
+.gal-tile{break-inside:avoid; margin-bottom:16px; border-radius:14px; overflow:hidden; position:relative; cursor:zoom-in; box-shadow:var(--shadow);}
+.gal-tile .ph{width:100%; height:230px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.85); font-family:'Fraunces',serif; font-size:14px; text-align:center; padding:14px; background:linear-gradient(155deg,var(--navy),var(--navy-2)); transition:transform .5s ease;}
 .gal-tile .cap{position:absolute; bottom:0; left:0; right:0; padding:10px 12px; background:linear-gradient(transparent,rgba(0,0,0,.55)); color:#fff; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:700;}
 .gal-tile:hover .ph{transform:scale(1.05);}
-.gal-tile .ph{transition:transform .5s ease;}
 
-#lightbox{position:fixed; inset:0; background:rgba(6,10,20,.92); z-index:950; display:none; align-items:center; justify-content:center; padding:30px;}
+#lightbox{position:fixed; inset:0; background:rgba(6,10,20,.92); z-index:970; display:none; align-items:center; justify-content:center; padding:30px;}
 #lightbox.open{display:flex;}
 #lightbox .lb-inner{max-width:520px; width:100%; text-align:center;}
-#lightbox .lb-ph{width:100%; aspect-ratio:4/5; border-radius:18px; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; color:#fff; font-size:20px;}
-#lightbox .lb-close{position:absolute; top:24px; right:24px; color:#fff; width:44px;height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1);}
+#lightbox .lb-ph{width:100%; aspect-ratio:4/5; border-radius:18px; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; color:#fff; font-size:20px; overflow:hidden;}
+#lightbox .lb-close{position:absolute; top:24px; right:24px; color:#fff; width:44px;height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1); z-index:2;}
 #lightbox .lb-caption{color:#fff; margin-top:16px; opacity:.8; font-size:13px; letter-spacing:.06em; text-transform:uppercase;}
+.lb-nav{position:fixed; top:50%; transform:translateY(-50%); color:#fff; width:48px;height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1); z-index:2;}
+.lb-nav:hover{background:rgba(255,255,255,.2);}
+.lb-prev{left:24px;}
+.lb-next{right:24px;}
+@media(max-width:640px){.lb-nav{width:38px;height:38px;} .lb-prev{left:8px;} .lb-next{right:8px;}}
 
 /* ---- Guestbook ---- */
 .gb-layout{display:grid; grid-template-columns:.85fr 1.15fr; gap:40px; align-items:start;}
@@ -532,14 +545,25 @@ footer .fcopy{font-size:12.5px; opacity:.5; border-top:1px solid rgba(255,255,25
   <div class="wrap">
     <div class="eyebrow reveal">Memories</div>
     <h2 class="section-title reveal">Photo Gallery</h2>
-    <p class="section-sub reveal">Placeholder tiles below — swap in your real photos in the code (search for GALLERY_ITEMS) and they'll appear here automatically.</p>
-    <div class="gal-filters" id="galFilters"></div>
-    <div class="masonry" id="galleryGrid"></div>
+    <p class="section-sub reveal">Organized by event and season — tap an album to browse. New photos I add automatically join the right album.</p>
+    <div class="album-grid" id="albumGrid"></div>
   </div>
 </section>
 
+<div id="albumModal">
+  <div class="album-modal-inner">
+    <div class="album-modal-head">
+      <div class="album-modal-title" id="albumModalTitle"></div>
+      <button class="lb-close" id="albumClose" style="position:static;"><svg viewBox="0 0 24 24" width="18" height="18"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="masonry" id="albumPhotoGrid"></div>
+  </div>
+</div>
+
 <div id="lightbox">
   <button class="lb-close" id="lbClose"><svg viewBox="0 0 24 24" width="20" height="20"><use href="#i-x"/></svg></button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous photo"><svg viewBox="0 0 24 24" width="20" height="20"><use href="#i-chevup" style="transform:rotate(-90deg)"/></svg></button>
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Next photo"><svg viewBox="0 0 24 24" width="20" height="20"><use href="#i-chevup" style="transform:rotate(90deg)"/></svg></button>
   <div class="lb-inner">
     <div class="lb-ph" id="lbPh"></div>
     <div class="lb-caption" id="lbCap"></div>
@@ -736,8 +760,11 @@ const CONTENT = {
   ],
 
   galleryCategories: ["All","Matriculation","Fellowship","SIWES","Projects","Friends","Family","Graduation"],
-  // Replace/add photos here: {src:"images/yourfile.jpg", category:"Friends", caption:"With friends"}
+  // Add photos here — they auto-group into an album by category: {src:"images/yourfile.jpg", category:"Friends", caption:"With friends"}
   galleryItems: [
+    {src:"images/matric-1.jpg", category:"Matriculation", caption:"With a Course Mate"},
+    {src:"images/matric-2.jpg", category:"Matriculation", caption:"With a Friend"},
+    {src:"images/matric-3.jpg", category:"Matriculation", caption:"Portrait"},
     {src:"images/gallery-1.jpg", category:"Friends", caption:"On Campus"},
     {src:"images/gallery-2.jpg", category:"Friends", caption:"Grateful Moments"},
     {src:"images/gallery-3.jpg", category:"Friends", caption:"Around Campus"},
@@ -895,44 +922,101 @@ $('#achGrid').innerHTML = CONTENT.achievements.map(a=>`
   </div>
 `).join('');
 
-/* ---- Gallery ---- */
-let galFilter = 'All';
-$('#galFilters').innerHTML = CONTENT.galleryCategories.map((c,i)=>`<button class="chip ${i===0?'active':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
-function renderGallery(){
-  const items = CONTENT.galleryItems.filter(g => galFilter==='All' || g.category===galFilter);
-  $('#galleryGrid').innerHTML = items.map(g=>{
+/* ---- Gallery: grouped into albums by category ---- */
+function getAlbums(){
+  const order = CONTENT.galleryCategories.filter(c=>c!=='All');
+  const albums = order.map(cat => ({
+    category: cat,
+    items: CONTENT.galleryItems.filter(g => g.category === cat),
+  })).filter(a => a.items.length > 0);
+  return albums;
+}
+function renderAlbums(){
+  const albums = getAlbums();
+  if(albums.length === 0){
+    $('#albumGrid').innerHTML = `<div class="album-empty">No photos yet — add some to CONTENT.galleryItems.</div>`;
+    return;
+  }
+  $('#albumGrid').innerHTML = albums.map(a=>{
+    const cover = a.items[0];
+    const coverInner = cover.src
+      ? `<img class="album-cover" src="${esc(cover.src)}" alt="${esc(a.category)}">`
+      : `<div class="album-cover-ph">${esc(a.category)}</div>`;
+    return `
+    <div class="album-card reveal show" data-cat="${esc(a.category)}">
+      ${coverInner}
+      <div class="album-overlay">
+        <div class="album-name">${esc(a.category)}</div>
+        <div class="album-count">${a.items.length} photo${a.items.length>1?'s':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  $$('.album-card').forEach(card=>{
+    card.addEventListener('click', ()=> openAlbum(card.dataset.cat));
+  });
+}
+renderAlbums();
+
+let currentAlbumItems = [];
+let currentPhotoIndex = 0;
+
+function openAlbum(category){
+  const album = getAlbums().find(a => a.category === category);
+  if(!album) return;
+  currentAlbumItems = album.items;
+  $('#albumModalTitle').textContent = category;
+  $('#albumPhotoGrid').innerHTML = currentAlbumItems.map((g,i)=>{
     const phInner = g.src
       ? `<img src="${esc(g.src)}" alt="${esc(g.caption)}" style="width:100%; height:100%; object-fit:cover; display:block;">`
       : esc(g.caption);
     return `
-    <div class="gal-tile" data-cap="${esc(g.caption)}" data-src="${g.src ? esc(g.src) : ''}">
+    <div class="gal-tile" data-idx="${i}">
       <div class="ph">${phInner}</div>
-      <div class="cap">${esc(g.category)}</div>
-    </div>
-  `;}).join('');
-  $$('.gal-tile').forEach(t=>{
-    t.addEventListener('click', ()=>{
-      const ph = t.querySelector('.ph');
-      const src = t.dataset.src;
-      if(src){
-        $('#lbPh').style.background = 'none';
-        $('#lbPh').innerHTML = `<img src="${src}" alt="${t.dataset.cap}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
-      } else {
-        $('#lbPh').style.background = getComputedStyle(ph).background;
-        $('#lbPh').innerHTML = '';
-        $('#lbPh').textContent = t.dataset.cap;
-      }
-      $('#lbCap').textContent = t.dataset.cap;
-      $('#lightbox').classList.add('open');
-    });
+      <div class="cap">${esc(g.caption)}</div>
+    </div>`;
+  }).join('');
+  $$('#albumPhotoGrid .gal-tile').forEach(t=>{
+    t.addEventListener('click', ()=> openLightbox(parseInt(t.dataset.idx,10)));
   });
+  $('#albumModal').classList.add('open');
 }
-renderGallery();
-$('#galFilters').addEventListener('click', e=>{
-  const btn = e.target.closest('.chip'); if(!btn) return;
-  galFilter = btn.dataset.cat;
-  $$('.chip').forEach(c=>c.classList.toggle('active', c===btn));
-  renderGallery();
+$('#albumClose').addEventListener('click', ()=> $('#albumModal').classList.remove('open'));
+$('#albumModal').addEventListener('click', e=>{ if(e.target.id==='albumModal') $('#albumModal').classList.remove('open'); });
+
+function openLightbox(idx){
+  currentPhotoIndex = idx;
+  renderLightbox();
+  $('#lightbox').classList.add('open');
+}
+function renderLightbox(){
+  const g = currentAlbumItems[currentPhotoIndex];
+  if(!g) return;
+  if(g.src){
+    $('#lbPh').style.background = 'none';
+    $('#lbPh').innerHTML = `<img src="${esc(g.src)}" alt="${esc(g.caption)}" style="width:100%; height:100%; object-fit:cover;">`;
+  } else {
+    $('#lbPh').style.background = 'linear-gradient(155deg,var(--navy),var(--navy-2))';
+    $('#lbPh').innerHTML = '';
+    $('#lbPh').textContent = g.caption;
+  }
+  $('#lbCap').textContent = g.caption;
+  const multi = currentAlbumItems.length > 1;
+  $('#lbPrev').style.display = multi ? 'flex' : 'none';
+  $('#lbNext').style.display = multi ? 'flex' : 'none';
+}
+$('#lbPrev').addEventListener('click', ()=>{
+  currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbumItems.length) % currentAlbumItems.length;
+  renderLightbox();
+});
+$('#lbNext').addEventListener('click', ()=>{
+  currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbumItems.length;
+  renderLightbox();
+});
+document.addEventListener('keydown', e=>{
+  if(!$('#lightbox').classList.contains('open')) return;
+  if(e.key === 'ArrowLeft') $('#lbPrev').click();
+  if(e.key === 'ArrowRight') $('#lbNext').click();
+  if(e.key === 'Escape') $('#lightbox').classList.remove('open');
 });
 $('#lbClose').addEventListener('click', ()=> $('#lightbox').classList.remove('open'));
 $('#lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') $('#lightbox').classList.remove('open'); });
