@@ -476,7 +476,7 @@ footer .fcopy{font-size:12.5px; opacity:.5; border-top:1px solid rgba(255,255,25
       <svg class="float-dec" viewBox="0 0 24 24" fill="currentColor" style="width:34px;height:34px; top:-10px; left:10px; position:absolute;"><use href="#i-star"/></svg>
       <svg class="float-dec" viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px; bottom:20px; right:-6px; position:absolute; animation-delay:1.5s;"><use href="#i-cap"/></svg>
       <div class="portrait-frame">
-        <div class="initials">MD</div>
+        <img src="images/hero-portrait.jpg" alt="Moses Daniel" style="width:100%; height:100%; object-fit:cover;">
         <div class="ring"></div>
         <div class="cap-badge"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#i-cap"/></svg></div>
       </div>
@@ -736,17 +736,13 @@ const CONTENT = {
   ],
 
   galleryCategories: ["All","Matriculation","Fellowship","SIWES","Projects","Friends","Family","Graduation"],
-  // Replace with real photos: {src:"https://...", category:"Friends", caption:"With friends"}
+  // Replace/add photos here: {src:"images/yourfile.jpg", category:"Friends", caption:"With friends"}
   galleryItems: [
-    {category:"Matriculation", caption:"Matriculation Day"},
-    {category:"Fellowship", caption:"Fellowship Retreat"},
-    {category:"SIWES", caption:"Internship"},
-    {category:"Projects", caption:"Final Year Project"},
-    {category:"Friends", caption:"With Friends"},
-    {category:"Family", caption:"Family"},
-    {category:"Graduation", caption:"Convocation"},
-    {category:"Fellowship", caption:"Bible Study"},
-    {category:"Projects", caption:"Project Defense"},
+    {src:"images/gallery-1.jpg", category:"Friends", caption:"On Campus"},
+    {src:"images/gallery-2.jpg", category:"Friends", caption:"Grateful Moments"},
+    {src:"images/gallery-3.jpg", category:"Friends", caption:"Around Campus"},
+    {src:"images/gallery-4.jpg", category:"Friends", caption:"With Course Mates"},
+    {src:"images/gallery-5.jpg", category:"Friends", caption:"The Squad"},
   ],
 
   support: {
@@ -789,7 +785,7 @@ document.getElementById('brandName').textContent = CONTENT.name;
 document.title = CONTENT.name + " — " + CONTENT.degree.replace(/\(.*?\)\s*/,'') + " | To God Be The Glory";
 $('#uniName').textContent = CONTENT.university;
 $('.hero-degree').innerHTML = 'Bachelor of Science in <b>Computer Science</b><br><span id="uniName">'+esc(CONTENT.university)+'</span>';
-$('.portrait-frame .initials').textContent = CONTENT.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
 
 window.addEventListener('load', ()=>{
   setTimeout(()=>{ $('#loader').classList.add('hide'); }, 550);
@@ -904,17 +900,28 @@ let galFilter = 'All';
 $('#galFilters').innerHTML = CONTENT.galleryCategories.map((c,i)=>`<button class="chip ${i===0?'active':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
 function renderGallery(){
   const items = CONTENT.galleryItems.filter(g => galFilter==='All' || g.category===galFilter);
-  $('#galleryGrid').innerHTML = items.map(g=>`
-    <div class="gal-tile" data-cap="${esc(g.caption)}">
-      <div class="ph">${esc(g.caption)}</div>
+  $('#galleryGrid').innerHTML = items.map(g=>{
+    const phInner = g.src
+      ? `<img src="${esc(g.src)}" alt="${esc(g.caption)}" style="width:100%; height:100%; object-fit:cover; display:block;">`
+      : esc(g.caption);
+    return `
+    <div class="gal-tile" data-cap="${esc(g.caption)}" data-src="${g.src ? esc(g.src) : ''}">
+      <div class="ph">${phInner}</div>
       <div class="cap">${esc(g.category)}</div>
     </div>
-  `).join('');
+  `;}).join('');
   $$('.gal-tile').forEach(t=>{
     t.addEventListener('click', ()=>{
       const ph = t.querySelector('.ph');
-      $('#lbPh').style.background = getComputedStyle(ph).background;
-      $('#lbPh').textContent = t.dataset.cap;
+      const src = t.dataset.src;
+      if(src){
+        $('#lbPh').style.background = 'none';
+        $('#lbPh').innerHTML = `<img src="${src}" alt="${t.dataset.cap}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
+      } else {
+        $('#lbPh').style.background = getComputedStyle(ph).background;
+        $('#lbPh').innerHTML = '';
+        $('#lbPh').textContent = t.dataset.cap;
+      }
       $('#lbCap').textContent = t.dataset.cap;
       $('#lightbox').classList.add('open');
     });
