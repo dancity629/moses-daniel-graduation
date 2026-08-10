@@ -520,21 +520,6 @@ footer .fcopy{font-size:12.5px; opacity:.5; border-top:1px solid rgba(255,255,25
     <p class="section-sub reveal">In 1 Samuel 7:12, Samuel set up a stone and called it Ebenezer — "the LORD has helped us." These are my stones of remembrance.</p>
 
     <div class="verse-grid" id="verseGrid"></div>
-
-    <h3 class="reveal" style="font-size:20px; font-weight:600; margin-bottom:20px;">Moments of His Faithfulness</h3>
-    <div class="bless-grid" id="blessGrid"></div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ============ ACHIEVEMENTS ============ -->
-<section id="achievements">
-  <div class="wrap">
-    <div class="eyebrow reveal">Milestones</div>
-    <h2 class="section-title reveal">Achievements</h2>
-    <p class="section-sub reveal">A summary of academics, leadership, skills, and service along the way.</p>
-    <div class="ach-grid" id="achGrid"></div>
   </div>
 </section>
 
@@ -648,6 +633,18 @@ footer .fcopy{font-size:12.5px; opacity:.5; border-top:1px solid rgba(255,255,25
   </div>
 </section>
 
+<div class="divider"></div>
+
+<!-- ============ ACHIEVEMENTS ============ -->
+<section id="achievements">
+  <div class="wrap">
+    <div class="eyebrow reveal">Milestones</div>
+    <h2 class="section-title reveal">Achievements</h2>
+    <p class="section-sub reveal">A summary of academics, leadership, skills, and service along the way.</p>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+</section>
+
 <!-- ============ STATS ============ -->
 <section id="stats">
   <div class="wrap">
@@ -722,31 +719,18 @@ const CONTENT = {
   ADMIN_PASSPHRASE: "ebenezer2026", // ⚠️ change this before sharing the page
 
   timeline: [
-    {icon:"i-flag", date:"2021", title:"Admission", desc:"Gained admission to study Computer Science — the beginning of a journey I could not have planned on my own."},
-    {icon:"i-book", date:"2021 – 2022", title:"First Year", desc:"Adjusting to campus life, foundational courses, and finding my footing academically and spiritually."},
-    {icon:"i-star", date:"2022 – 2026", title:"Fellowship Leadership", desc:"Served as Assistant Campus Coordinator of The Lord's Chosen Campus Fellowship (TLCCF), Fulafia chapter, in 100L and 200L, then became Coordinator in 300L and 400L. Under that season the fellowship grew from a struggling 10–15 members to over 40, moved from having no venue to building our own small hall, and saw several give their lives to Christ."},
-    {icon:"i-briefcase", date:"2025", title:"SIWES Internship", desc:"Completed a six-month internship under the Student Industrial Work Experience Scheme at O2 Innovations Lab, Lafia, Nasarawa State — and was honored with the Award of Merit for Best Male Personality of the Year."},
+    {icon:"i-flag", date:"2023", title:"Admission", desc:"Gained admission to study Computer Science — the beginning of a journey I could not have planned on my own."},
+    {icon:"i-book", date:"2023", title:"First Year", desc:"Adjusting to campus life, foundational courses, and finding my footing academically and spiritually."},
+    {icon:"i-star", date:"2023 – 2026", title:"Fellowship Leadership", desc:"Served as Assistant Campus Coordinator of The Lord's Chosen Campus Fellowship (TLCCF), Fulafia chapter, in 100L and 200L, then became Coordinator in 300L and 400L. Under that season the fellowship grew from a struggling 10–15 members to over 40, moved from having no venue to building our own small hall, and saw several give their lives to Christ."},
+    {icon:"i-briefcase", date:"April – October 2025", title:"SIWES Internship", desc:"Completed a six-month internship under the Student Industrial Work Experience Scheme at O2 Innovations Lab, Lafia, Nasarawa State — and was honored with the Award of Merit for Best Male Personality of the Year."},
     {icon:"i-code", date:"2023 – 2024", title:"Web Development Journey", desc:"Began building full-stack applications, sharpening skills that would shape my final year work."},
-    {icon:"i-shield", date:"2025", title:"Final Year Project", desc:"Designed and built my final year project from research through implementation."},
-    {icon:"i-briefcase", date:"2026", title:"Project Defense", desc:"Successfully defended my project before the departmental panel."},
-    {icon:"i-cap", date:"August 14, 2026", title:"Graduation", desc:"Convocation day — the culmination of years of grace, work, and faithfulness."},
+    {icon:"i-shield", date:"2026", title:"Final Year Project & Defense", desc:"Designed and built my final year project from research through implementation, then successfully defended it before the departmental panel."},
+    {icon:"i-cap", date:"August 14, 2026", title:"Final Sign-Out", desc:"My last paper — signing out of campus. Convocation is still ahead, but this is the day the academic journey closes."},
   ],
 
   verses: [
     {text:"And surely I am with you always, to the very end of the age.", ref:"Matthew 28:20"},
     {text:"Trust in the LORD with all your heart, and lean not on your own understanding.", ref:"Proverbs 3:5–6"},
-    {text:"The LORD is my shepherd; I shall not want.", ref:"Psalm 23:1"},
-    {text:"I can do all things through Christ who strengthens me.", ref:"Philippians 4:13"},
-  ],
-
-  blessings: [
-    {icon:"i-shield", text:"Strength through challenges"},
-    {icon:"i-book", text:"Academic success"},
-    {icon:"i-star", text:"Growth in faith"},
-    {icon:"i-heart", text:"Meaningful friendships"},
-    {icon:"i-briefcase", text:"Successful internship"},
-    {icon:"i-code", text:"Learning valuable skills"},
-    {icon:"i-cap", text:"Completing my degree"},
   ],
 
   achievements: [
@@ -817,17 +801,17 @@ const CONTENT = {
   ],
 
   support: {
-    bankName: "Your Bank Name",
-    accountName: "Moses Daniel",
-    accountNumber: "0000000000",
+    bankName: "Opay",
+    accountName: "Daniel Moses",
+    accountNumber: "9043469361",
   },
 
   contact: {
-    email: "you@example.com",
-    phone: "+234 000 000 0000",
-    linkedin: "https://linkedin.com/in/yourname",
+    email: "mosesdaniel629@gmail.com",
+    phone: "0903 838 0714",
+    phone2: "0904 346 9361",
     github: "https://github.com/yourname",
-    x: "https://x.com/yourname",
+    x: "https://x.com/iamdancity",
   },
 };
 
@@ -885,7 +869,7 @@ $('#menuToggle').addEventListener('click', ()=> $('#mobileNav').classList.toggle
 $$('#mobileNav a').forEach(a=>a.addEventListener('click', ()=> $('#mobileNav').classList.remove('open')));
 
 /* ---- Scroll progress + back to top + scrollspy ---- */
-const sections = ['home','journey','faith','achievements','gallery','guestbook','support','stats','contact'];
+const sections = ['home','journey','faith','gallery','guestbook','support','achievements','stats','contact'];
 window.addEventListener('scroll', ()=>{
   const h = document.documentElement;
   const pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
@@ -948,12 +932,6 @@ $('#verseGrid').innerHTML = CONTENT.verses.map(v=>`
     <svg class="qicon" viewBox="0 0 24 24" fill="currentColor"><use href="#i-quote"/></svg>
     <div class="vtext">"${esc(v.text)}"</div>
     <div class="vref">${esc(v.ref)}</div>
-  </div>
-`).join('');
-$('#blessGrid').innerHTML = CONTENT.blessings.map(b=>`
-  <div class="bless-card reveal">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><use href="#${b.icon}"/></svg>
-    <p>${esc(b.text)}</p>
   </div>
 `).join('');
 
@@ -1069,9 +1047,9 @@ $('#lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') $('#l
 const contactMap = [
   {icon:'i-mail', key:'Email', val: CONTENT.contact.email, href:'mailto:'+CONTENT.contact.email},
   {icon:'i-phone', key:'Phone', val: CONTENT.contact.phone, href:'tel:'+CONTENT.contact.phone.replace(/\s/g,'')},
-  {icon:'i-link', key:'LinkedIn', val:'LinkedIn Profile', href:CONTENT.contact.linkedin},
+  {icon:'i-phone', key:'Phone', val: CONTENT.contact.phone2, href:'tel:'+CONTENT.contact.phone2.replace(/\s/g,'')},
   {icon:'i-code', key:'GitHub', val:'GitHub Profile', href:CONTENT.contact.github},
-  {icon:'i-x', key:'X (Twitter)', val:'@Profile', href:CONTENT.contact.x},
+  {icon:'i-x', key:'X (Twitter)', val:'@iamdancity', href:CONTENT.contact.x},
 ];
 $('#contactGrid').innerHTML = contactMap.map(c=>`
   <a class="contact-card reveal" href="${esc(c.href)}" target="_blank" rel="noopener">
