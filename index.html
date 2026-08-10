@@ -499,6 +499,24 @@ footer .fcopy{font-size:12.5px; opacity:.5; border-top:1px solid rgba(255,255,25
 
 <div class="divider"></div>
 
+<!-- ============ APPRECIATION ============ -->
+<section id="appreciation" style="padding-top:90px; padding-bottom:90px;">
+  <div class="wrap" style="max-width:760px; text-align:center;">
+    <div class="eyebrow reveal" style="justify-content:center;">With Gratitude</div>
+    <h2 class="section-title reveal">A Word of Thanks</h2>
+    <div class="stone reveal" style="text-align:left; padding:36px 40px;">
+      <p style="font-family:'Fraunces',serif; font-style:italic; font-size:17px; line-height:1.85; color:var(--text-soft);">
+        To God be all the glory — the Author and Finisher of this journey. Every open door, every provision, every quiet strength in hard seasons was His hand at work, and I do not take a single day of it for granted.
+      </p>
+      <p style="font-family:'Fraunces',serif; font-style:italic; font-size:17px; line-height:1.85; color:var(--text-soft); margin-top:18px;">
+        To my father and mother, thank you for the sacrifices you made without complaint, for believing in me before I believed in myself, and for praying me through seasons you never spoke of. To my siblings, thank you for being my first cheerleaders and my safest place to be exactly who I am. And to my friends — the ones who stayed, who checked in, who carried parts of this load with me — this milestone is as much yours as it is mine.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <!-- ============ JOURNEY ============ -->
 <section id="journey">
   <div class="wrap">
@@ -869,7 +887,7 @@ $('#menuToggle').addEventListener('click', ()=> $('#mobileNav').classList.toggle
 $$('#mobileNav a').forEach(a=>a.addEventListener('click', ()=> $('#mobileNav').classList.remove('open')));
 
 /* ---- Scroll progress + back to top + scrollspy ---- */
-const sections = ['home','journey','faith','gallery','guestbook','support','achievements','stats','contact'];
+const sections = ['home','appreciation','journey','faith','gallery','guestbook','support','achievements','stats','contact'];
 window.addEventListener('scroll', ()=>{
   const h = document.documentElement;
   const pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
