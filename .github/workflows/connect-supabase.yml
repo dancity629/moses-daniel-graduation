@@ -1,9 +1,8 @@
 name: Connect graduation site to Supabase
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -13,7 +12,7 @@ jobs:
   patch-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Patch index.html
@@ -21,243 +20,138 @@ jobs:
           SUPABASE_URL: https://kgrtwskdxrpamvrvskfg.supabase.co
           SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtncnR3c2tkeHJwYW12cnZza2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTg5NTIsImV4cCI6MjEwMjAzNDk1Mn0.J5zkKyWSiuuR0IEqBpNB6sxRoK6tl3wCX30Ab1v7c2M
         run: |
-          python3 <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
           import os
 
-          path = Path('index.html')
-          text = path.read_text(encoding='utf-8')
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
 
-          # Load Supabase JS before the site's JavaScript.
+          # Load Supabase JS before the site's scripts.
           cdn = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
-          if cdn not in text:
-              text = text.replace('</head>', cdn + '\n</head>', 1)
+          if cdn not in s:
+              s = s.replace('</head>', cdn + '\n</head>', 1)
 
-          # Initialize the Supabase browser client inside the existing script.
-          config = """const SUPABASE_URL = %r;
-          const SUPABASE_ANON_KEY = %r;
-          const { createClient } = window.supabase;
-          const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          """ % (os.environ['SUPABASE_URL'], os.environ['SUPABASE_ANON_KEY'])
-          marker = "<script>\ndocument.write('<style>'"
-          if 'const SUPABASE_URL =' not in text:
-              if marker not in text:
-                  raise SystemExit('Main script marker not found')
-              text = text.replace(marker, '<script>\n' + config + "document.write('<style>'", 1)
+          # Create the Supabase browser client before the existing application code.
+          marker = '<script>\ndocument.write(\'<style>\''
+          if 'const SUPABASE_URL =' not in s:
+              cfg = """<script>\nconst SUPABASE_URL = %r;\nconst SUPABASE_ANON_KEY = %r;\nconst { createClient } = window.supabase;\nconst db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);\n</script>\n""" % (os.environ['SUPABASE_URL'], os.environ['SUPABASE_ANON_KEY'])
+              s = s.replace('<script>\ndocument.write', cfg + '<script>\ndocument.write', 1)
 
-          # Replace the old shared-storage guestbook implementation.
-          start_marker = "/* =========================================================================\n   GUESTBOOK — persisted with window.storage (shared, so all visitors see it)\n   ========================================================================= */"
-          end_marker = "/* =========================================================================\n   VISITOR STATS\n   ========================================================================= */"
-          start = text.find(start_marker)
-          end = text.find(end_marker, start)
-          if start == -1 or end == -1:
-              raise SystemExit('Guestbook section markers not found')
+          # Replace storage-backed guestbook with Supabase-backed guestbook.
+          start_token = 'GUESTBOOK — persisted with window.storage'
+          end_token = 'VISITOR STATS'
+          a = s.find(start_token)
+          b = s.find(end_token, a)
+          if a < 0 or b < 0:
+              raise SystemExit('Guestbook/stat markers not found')
+          a = s.rfind('/*', 0, a)
+          b = s.rfind('/*', 0, b)
 
           guestbook = r'''/* =========================================================================
    GUESTBOOK — SUPABASE
    ========================================================================= */
-let gbEntries = [];
-let gbVisibleCount = 6;
-let visitorId = null;
-let likedIds = [];
+let gbEntries=[];
+let gbVisibleCount=6;
+let visitorId=null;
+let likedIds=[];
 
 async function initVisitorIdentity(){
-  let vid = await storeGet('visitor:id', false);
-  if(!vid){ vid = uid(); await storeSet('visitor:id', vid, false); }
-  visitorId = vid;
-  const likes = await storeGet('visitor:likes', false);
-  likedIds = likes ? JSON.parse(likes) : [];
+  let vid=await storeGet('visitor:id',false);
+  if(!vid){vid=uid();await storeSet('visitor:id',vid,false);}
+  visitorId=vid;
+  const likes=await storeGet('visitor:likes',false);
+  likedIds=likes?JSON.parse(likes):[];
 }
 
 async function loadGuestbook(){
-  try {
-    const { data, error } = await db
-      .from('guestbook')
-      .select('*')
-      .order('created_at', { ascending:false });
-    if(error) throw error;
-    gbEntries = (data || []).map(e => ({
-      id:e.id,
-      name:e.name,
-      relationship:e.relationship,
-      message:e.message,
-      likes:e.likes || 0,
-      ts:new Date(e.created_at).getTime()
-    }));
-    renderGuestbook();
-    updateStats();
-  } catch(error) {
-    console.error('Supabase guestbook error:', error);
-    $('#gbMsgs').innerHTML = '<div class="gb-empty">Unable to load messages right now. Please refresh.</div>';
-  }
+  try{
+    const {data,error}=await db.from('guestbook').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    gbEntries=(data||[]).map(e=>({id:e.id,name:e.name,relationship:e.relationship,message:e.message,likes:e.likes||0,ts:new Date(e.created_at).getTime()}));
+    renderGuestbook();updateStats();
+  }catch(error){console.error('Supabase guestbook error:',error);}
 }
 
 function renderGuestbook(){
-  const q = ($('#gbSearch').value||'').toLowerCase().trim();
-  const rel = $('#gbFilter').value;
-  const filtered = gbEntries.filter(e=>{
-    const matchQ = !q || e.name.toLowerCase().includes(q);
-    const matchRel = !rel || e.relationship === rel;
-    return matchQ && matchRel;
-  });
-  const shown = filtered.slice(0,gbVisibleCount);
-  $('#gbMore').style.display = filtered.length > gbVisibleCount ? 'inline-flex' : 'none';
-  if(shown.length===0){
-    $('#gbMsgs').innerHTML = '<div class="gb-empty">No messages yet — be the first to celebrate! 🎓</div>';
-    return;
-  }
-  $('#gbMsgs').innerHTML = shown.map(e=>{
-    const liked = likedIds.includes(e.id);
-    return `<div class="gb-card reveal show" data-id="${e.id}">
-      <div class="gb-head">
-        <div class="gb-avatar">${esc(e.name.slice(0,1).toUpperCase())}</div>
-        <div><div class="gb-name">${esc(e.name)}</div><div class="gb-rel">${esc(e.relationship)}</div></div>
-        <div class="gb-time">${timeAgo(e.ts)}</div>
-      </div>
-      <div class="gb-msg-text">${esc(e.message)}</div>
-      <button class="gb-like ${liked?'liked':''}" data-id="${e.id}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><use href="#i-heart"/></svg>
-        <span>${e.likes||0}</span>
-      </button>
-    </div>`;
+  const q=($('#gbSearch').value||'').toLowerCase().trim();
+  const rel=$('#gbFilter').value;
+  const filtered=gbEntries.filter(e=>(!q||e.name.toLowerCase().includes(q))&&(!rel||e.relationship===rel));
+  const shown=filtered.slice(0,gbVisibleCount);
+  $('#gbMore').style.display=filtered.length>gbVisibleCount?'inline-flex':'none';
+  if(!shown.length){$('#gbMsgs').innerHTML='<div class="gb-empty">No messages yet — be the first to celebrate! 🎓</div>';return;}
+  $('#gbMsgs').innerHTML=shown.map(e=>{
+    const liked=likedIds.includes(e.id);
+    return `<div class="gb-card reveal show" data-id="${e.id}"><div class="gb-head"><div class="gb-avatar">${esc(e.name.slice(0,1).toUpperCase())}</div><div><div class="gb-name">${esc(e.name)}</div><div class="gb-rel">${esc(e.relationship)}</div></div><div class="gb-time">${timeAgo(e.ts)}</div></div><div class="gb-msg-text">${esc(e.message)}</div><button class="gb-like ${liked?'liked':''}" data-id="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><use href="#i-heart"/></svg><span>${e.likes||0}</span></button></div>`;
   }).join('');
-
-  $$('.gb-like').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const id = btn.dataset.id;
-      const entry = gbEntries.find(e=>e.id===id);
-      if(!entry) return;
-      const already = likedIds.includes(id);
-      const oldLikes = entry.likes || 0;
-      if(already){
-        entry.likes = Math.max(0,oldLikes-1);
-        likedIds = likedIds.filter(x=>x!==id);
-      } else {
-        entry.likes = oldLikes+1;
-        likedIds.push(id);
-      }
-      const { error } = await db.from('guestbook').update({likes:entry.likes}).eq('id',id);
-      if(error){
-        entry.likes = oldLikes;
-        likedIds = likedIds.filter(x=>x!==id);
-        console.error('Like update failed. The guestbook UPDATE policy is not enabled:', error);
-        alert('Likes are temporarily unavailable.');
-        renderGuestbook();
-        return;
-      }
-      await storeSet('visitor:likes', JSON.stringify(likedIds), false);
-      renderGuestbook();
-    });
-  });
+  $$('.gb-like').forEach(btn=>btn.addEventListener('click',async()=>{
+    const id=btn.dataset.id,entry=gbEntries.find(e=>e.id===id);if(!entry)return;
+    const already=likedIds.includes(id),old=entry.likes||0;
+    entry.likes=already?Math.max(0,old-1):old+1;
+    likedIds=already?likedIds.filter(x=>x!==id):[...likedIds,id];
+    const {error}=await db.from('guestbook').update({likes:entry.likes}).eq('id',id);
+    if(error){entry.likes=old;likedIds=likedIds.filter(x=>x!==id);console.error('Like update failed:',error);alert('Likes are temporarily unavailable.');renderGuestbook();return;}
+    await storeSet('visitor:likes',JSON.stringify(likedIds),false);renderGuestbook();
+  }));
 }
 
-$('#gbSearch').addEventListener('input', ()=>{gbVisibleCount=6;renderGuestbook();});
-$('#gbFilter').addEventListener('change', ()=>{gbVisibleCount=6;renderGuestbook();});
-$('#gbMore').addEventListener('click', ()=>{gbVisibleCount+=6;renderGuestbook();});
-
-function validateGbField(id, ok){
-  $(id).classList.toggle('invalid', !ok);
-  return ok;
-}
-
-$('#gbSubmit').addEventListener('click', async ()=>{
-  const name=$('#in-name').value.trim();
-  const rel=$('#in-rel').value;
-  const msg=$('#in-msg').value.trim();
-  const okName=validateGbField('#f-name',name.length>=2);
-  const okRel=validateGbField('#f-rel',!!rel);
-  const okMsg=validateGbField('#f-msg',msg.length>=3);
-  if(!(okName&&okRel&&okMsg)) return;
-  try {
-    const {data,error}=await db.from('guestbook').insert({name,relationship:rel,message:msg}).select().single();
-    if(error) throw error;
+$('#gbSearch').addEventListener('input',()=>{gbVisibleCount=6;renderGuestbook();});
+$('#gbFilter').addEventListener('change',()=>{gbVisibleCount=6;renderGuestbook();});
+$('#gbMore').addEventListener('click',()=>{gbVisibleCount+=6;renderGuestbook();});
+function validateGbField(id,ok){$(id).classList.toggle('invalid',!ok);return ok;}
+$('#gbSubmit').addEventListener('click',async()=>{
+  const name=$('#in-name').value.trim(),rel=$('#in-rel').value,msg=$('#in-msg').value.trim();
+  const okName=validateGbField('#f-name',name.length>=2),okRel=validateGbField('#f-rel',!!rel),okMsg=validateGbField('#f-msg',msg.length>=3);
+  if(!(okName&&okRel&&okMsg))return;
+  try{
+    const {data,error}=await db.from('guestbook').insert({name,relationship:rel,message:msg}).select().single();if(error)throw error;
     gbEntries.unshift({id:data.id,name:data.name,relationship:data.relationship,message:data.message,likes:data.likes||0,ts:new Date(data.created_at).getTime()});
-    $('#in-name').value='';$('#in-rel').value='';$('#in-msg').value='';
-    $('#gbSuccess').classList.add('show');
-    setTimeout(()=>$('#gbSuccess').classList.remove('show'),3200);
-    burstConfetti(60);
-    gbVisibleCount=Math.max(gbVisibleCount,6);
-    renderGuestbook();
-    updateStats();
-  } catch(error) {
-    console.error('Failed to submit guestbook:',error);
-    alert('Sorry, your message could not be posted. Please try again.');
-  }
+    $('#in-name').value='';$('#in-rel').value='';$('#in-msg').value='';$('#gbSuccess').classList.add('show');setTimeout(()=>$('#gbSuccess').classList.remove('show'),3200);burstConfetti(60);renderGuestbook();updateStats();
+  }catch(error){console.error('Failed to submit guestbook:',error);alert('Sorry, your message could not be posted. Please try again.');}
 });
 
 '''
-          text = text[:start] + guestbook + text[end:]
+          s=s[:a]+guestbook+s[b:]
 
-          # Replace the visitor stats implementation.
-          start = text.find(end_marker)
-          confetti_marker = "/* =========================================================================\n   CONFETTI\n   ========================================================================= */"
-          end = text.find(confetti_marker, start)
-          if start == -1 or end == -1:
-              raise SystemExit('Visitor stats section markers not found')
-          stats = r'''/* =========================================================================
+          # Replace visitor stats section through the confetti section.
+          a=s.find('VISITOR STATS')
+          b=s.find('/*',a+1)
+          # Find the actual next section marker after the stats functions.
+          b=s.find('CONFETTI',a)
+          if a<0 or b<0: raise SystemExit('Visitor stats marker not found')
+          a=s.rfind('/*',0,a)
+          b=s.rfind('/*',0,b)
+          stats=r'''/* =========================================================================
    VISITOR STATS — SUPABASE
    ========================================================================= */
 async function updateStats(){
   $('#statMessages').textContent=gbEntries.length;
-  try {
-    const {data,error}=await db.from('visitor_stats').select('total_visitors').eq('id',1).single();
-    if(error) throw error;
-    $('#statVisitors').textContent=data?.total_visitors ?? 0;
-  } catch(error) {
-    console.error('Failed to load visitor stats:',error);
-    $('#statVisitors').textContent='0';
-  }
-  const days=Math.max(0,Math.floor((Date.now()-gradDate)/86400000));
-  $('#statDays').textContent=Date.now()>=gradDate?days:'—';
+  try{const {data,error}=await db.from('visitor_stats').select('total_visitors').eq('id',1).single();if(error)throw error;$('#statVisitors').textContent=data?.total_visitors??0;}catch(error){console.error('Failed to load visitor stats:',error);$('#statVisitors').textContent='0';}
+  const days=Math.max(0,Math.floor((Date.now()-gradDate)/86400000));$('#statDays').textContent=Date.now()>=gradDate?days:'—';
 }
-
 async function registerVisitorOnce(){
-  const seen=await storeGet('visitor:seen',false);
-  if(seen) return;
-  await storeSet('visitor:seen','true',false);
-  try {
-    const {data,error}=await db.rpc('increment_visitor_count');
-    if(error) throw error;
-    $('#statVisitors').textContent=data;
-    setTimeout(()=>burstConfetti(90),900);
-  } catch(error) {
-    console.error('Visitor counter error:',error);
-  }
+  const seen=await storeGet('visitor:seen',false);if(seen)return;await storeSet('visitor:seen','true',false);
+  try{const {data,error}=await db.rpc('increment_visitor_count');if(error)throw error;$('#statVisitors').textContent=data;setTimeout(()=>burstConfetti(90),900);}catch(error){console.error('Visitor counter error:',error);}
 }
 
 '''
-          text = text[:start] + stats + text[end:]
-
-          # Keep the existing admin UI, but prevent insecure client-side deletion.
-          old_admin = """    btn.addEventListener('click', async ()=>{
-      gbEntries = gbEntries.filter(e=>e.id!==btn.dataset.del);
-      await saveGuestbook();
-      renderAdminList(); renderGuestbook(); updateStats();
-    });"""
-          new_admin = """    btn.addEventListener('click', ()=>{
-      alert('Admin deletion will be enabled after Supabase Auth is configured.');
-    });"""
-          text = text.replace(old_admin,new_admin,1)
-
-          path.write_text(text,encoding='utf-8')
+          s=s[:a]+stats+s[b:]
+          p.write_text(s,encoding='utf-8')
           PY
 
-      - name: Validate generated site
+      - name: Validate
         run: |
-          test -s index.html
           grep -q "kgrtwskdxrpamvrvskfg.supabase.co" index.html
           grep -q "from('guestbook')" index.html
-          grep -q "increment_visitor_count" index.html
           grep -q "from('visitor_stats')" index.html
+          grep -q "increment_visitor_count" index.html
+          echo "Supabase integration patch validated"
 
-      - name: Commit site changes
+      - name: Commit patched index.html
         run: |
-          if git diff --quiet -- index.html; then
-            echo "index.html already contains the Supabase integration"
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "feat: connect guestbook and visitor stats to Supabase"
+          if git diff --cached --quiet; then echo "No changes needed"; exit 0; fi
+          git commit -m "feat: connect graduation guestbook and stats to Supabase"
           git push
