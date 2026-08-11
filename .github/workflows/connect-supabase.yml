@@ -1,0 +1,76 @@
+name: Connect graduation site to Supabase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch index.html
+        env:
+          SUPABASE_URL: https://kgrtwskdxrpamvrvskfg.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtncnR3c2tkeHJwYW12cnZza2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTg5NTIsImV4cCI6MjEwMjAzNDk1Mn0.J5zkKyWSiuuR0IEqBpNB6sxRoK6tl3wCX30Ab1v7c2M
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          cdn='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+          if cdn not in s: s=s.replace('</head>',cdn+'\n</head>',1)
+          if 'const SUPABASE_URL =' not in s:
+              cfg=f'''<script>\nconst SUPABASE_URL = {os.environ["SUPABASE_URL"]!r};\nconst SUPABASE_ANON_KEY = {os.environ["SUPABASE_ANON_KEY"]!r};\nconst {{ createClient }} = window.supabase;\nconst db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);\n</script>\n'''
+              s=s.replace('<script>\ndocument.write',cfg+'<script>\ndocument.write',1)
+          start=s.find('GUESTBOOK — persisted with window.storage'); end=s.find('VISITOR STATS',start)
+          if start<0 or end<0: raise SystemExit('guestbook markers not found')
+          a=s.rfind('/*',0,start); b=s.rfind('/*',0,end)
+          guest=r'''/* =========================================================================
+   GUESTBOOK — SUPABASE
+   ========================================================================= */
+let gbEntries=[];let gbVisibleCount=6;let visitorId=null;let likedIds=[];
+async function initVisitorIdentity(){let vid=await storeGet('visitor:id',false);if(!vid){vid=uid();await storeSet('visitor:id',vid,false);}visitorId=vid;const likes=await storeGet('visitor:likes',false);likedIds=likes?JSON.parse(likes):[];}
+async function loadGuestbook(){try{const {data,error}=await db.from('guestbook').select('*').order('created_at',{ascending:false});if(error)throw error;gbEntries=(data||[]).map(e=>({id:e.id,name:e.name,relationship:e.relationship,message:e.message,likes:e.likes||0,ts:new Date(e.created_at).getTime()}));renderGuestbook();updateStats();}catch(error){console.error('Supabase guestbook error:',error);}}
+function renderGuestbook(){const q=($('#gbSearch').value||'').toLowerCase().trim(),rel=$('#gbFilter').value,filtered=gbEntries.filter(e=>(!q||e.name.toLowerCase().includes(q))&&(!rel||e.relationship===rel)),shown=filtered.slice(0,gbVisibleCount);$('#gbMore').style.display=filtered.length>gbVisibleCount?'inline-flex':'none';if(!shown.length){$('#gbMsgs').innerHTML='<div class="gb-empty">No messages yet — be the first to celebrate! 🎓</div>';return;}$('#gbMsgs').innerHTML=shown.map(e=>{const liked=likedIds.includes(e.id);return `<div class="gb-card reveal show" data-id="${e.id}"><div class="gb-head"><div class="gb-avatar">${esc(e.name.slice(0,1).toUpperCase())}</div><div><div class="gb-name">${esc(e.name)}</div><div class="gb-rel">${esc(e.relationship)}</div></div><div class="gb-time">${timeAgo(e.ts)}</div></div><div class="gb-msg-text">${esc(e.message)}</div><button class="gb-like ${liked?'liked':''}" data-id="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><use href="#i-heart"/></svg><span>${e.likes||0}</span></button></div>`;}).join('');$$('.gb-like').forEach(btn=>btn.addEventListener('click',async()=>{const id=btn.dataset.id,entry=gbEntries.find(e=>e.id===id);if(!entry)return;const already=likedIds.includes(id),old=entry.likes||0;entry.likes=already?Math.max(0,old-1):old+1;likedIds=already?likedIds.filter(x=>x!==id):[...likedIds,id];const {error}=await db.from('guestbook').update({likes:entry.likes}).eq('id',id);if(error){entry.likes=old;likedIds=likedIds.filter(x=>x!==id);console.error(error);renderGuestbook();return;}await storeSet('visitor:likes',JSON.stringify(likedIds),false);renderGuestbook();}));}
+$('#gbSearch').addEventListener('input',()=>{gbVisibleCount=6;renderGuestbook();});$('#gbFilter').addEventListener('change',()=>{gbVisibleCount=6;renderGuestbook();});$('#gbMore').addEventListener('click',()=>{gbVisibleCount+=6;renderGuestbook();});
+function validateGbField(id,ok){$(id).classList.toggle('invalid',!ok);return ok;}
+$('#gbSubmit').addEventListener('click',async()=>{const name=$('#in-name').value.trim(),rel=$('#in-rel').value,msg=$('#in-msg').value.trim(),okName=validateGbField('#f-name',name.length>=2),okRel=validateGbField('#f-rel',!!rel),okMsg=validateGbField('#f-msg',msg.length>=3);if(!(okName&&okRel&&okMsg))return;try{const {data,error}=await db.from('guestbook').insert({name,relationship:rel,message:msg}).select().single();if(error)throw error;gbEntries.unshift({id:data.id,name:data.name,relationship:data.relationship,message:data.message,likes:data.likes||0,ts:new Date(data.created_at).getTime()});$('#in-name').value='';$('#in-rel').value='';$('#in-msg').value='';$('#gbSuccess').classList.add('show');setTimeout(()=>$('#gbSuccess').classList.remove('show'),3200);burstConfetti(60);renderGuestbook();updateStats();}catch(error){console.error(error);alert('Sorry, your message could not be posted. Please try again.');}});
+
+'''
+          s=s[:a]+guest+s[b:]
+          start=s.find('VISITOR STATS'); end=s.find('CONFETTI',start)
+          if start<0 or end<0: raise SystemExit('stats markers not found')
+          a=s.rfind('/*',0,start); b=s.rfind('/*',0,end)
+          stats=r'''/* =========================================================================
+   VISITOR STATS — SUPABASE
+   ========================================================================= */
+async function updateStats(){$('#statMessages').textContent=gbEntries.length;try{const {data,error}=await db.from('visitor_stats').select('total_visitors').eq('id',1).single();if(error)throw error;$('#statVisitors').textContent=data?.total_visitors??0;}catch(error){console.error(error);$('#statVisitors').textContent='0';}const days=Math.max(0,Math.floor((Date.now()-gradDate)/86400000));$('#statDays').textContent=Date.now()>=gradDate?days:'—';}
+async function registerVisitorOnce(){const seen=await storeGet('visitor:seen',false);if(seen)return;await storeSet('visitor:seen','true',false);try{const {data,error}=await db.rpc('increment_visitor_count');if(error)throw error;$('#statVisitors').textContent=data;setTimeout(()=>burstConfetti(90),900);}catch(error){console.error(error);}}
+
+'''
+          s=s[:a]+stats+s[b:]
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate
+        run: |
+          grep -q "kgrtwskdxrpamvrvskfg.supabase.co" index.html
+          grep -q "from('guestbook')" index.html
+          grep -q "from('visitor_stats')" index.html
+          grep -q "increment_visitor_count" index.html
+
+      - name: Commit patched site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "feat: connect graduation guestbook and stats to Supabase"
+          git push
