@@ -852,8 +852,30 @@ function timeAgo(ts){
   const d = Math.floor(h/24); if(d<30) return d+"d ago";
   return new Date(ts).toLocaleDateString();
 }
-async function storeGet(key, shared){ try{ const r = await window.storage.get(key, shared); return r ? r.value : null; }catch(e){ return null; } }
-async function storeSet(key, val, shared){ try{ return await window.storage.set(key, val, shared); }catch(e){ console.error('storage set failed', e); return null; } }
+
+/* ---- Supabase (shared data: guestbook, likes, visitor count) ---- */
+const SUPABASE_URL = "https://kgrtwskdxrpamvrvskfg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtncnR3c2tkeHJwYW12cnZza2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTg5NTIsImV4cCI6MjEwMjAzNDk1Mn0.J5zkKyWSiuuR0IEqBpNB6sxRoK6tl3wCX30Ab1v7c2M";
+async function sb(path, options={}){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        ...(options.headers||{}),
+      },
+    });
+    if(!res.ok){ console.error('Supabase error', res.status, await res.text()); return null; }
+    const text = await res.text();
+    return text ? JSON.parse(text) : true;
+  }catch(e){ console.error('Supabase fetch failed', e); return null; }
+}
+
+/* ---- localStorage (personal, per-browser data only) ---- */
+function lsGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function lsSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
 
 /* =========================================================================
    INIT
@@ -868,9 +890,9 @@ window.addEventListener('load', ()=>{
   setTimeout(()=>{ $('#loader').classList.add('hide'); }, 550);
 });
 
-/* ---- Theme (persisted via window.storage, not localStorage) ---- */
-(async function initTheme(){
-  const saved = await storeGet('prefs:theme', false);
+/* ---- Theme (persisted in localStorage — personal to this browser) ---- */
+(function initTheme(){
+  const saved = lsGet('theme');
   const theme = saved || 'light';
   document.documentElement.setAttribute('data-theme', theme);
   updateThemeIcon(theme);
@@ -878,12 +900,12 @@ window.addEventListener('load', ()=>{
 function updateThemeIcon(theme){
   $('#themeIcon').innerHTML = theme==='dark' ? '<use href="#i-sun"/>' : '<use href="#i-moon"/>';
 }
-$('#themeToggle').addEventListener('click', async ()=>{
+$('#themeToggle').addEventListener('click', ()=>{
   const cur = document.documentElement.getAttribute('data-theme');
   const next = cur==='dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   updateThemeIcon(next);
-  await storeSet('prefs:theme', next, false);
+  lsSet('theme', next);
 });
 
 /* ---- Mobile nav ---- */
@@ -1103,31 +1125,20 @@ $('#copyAcct').addEventListener('click', async ()=>{
 });
 
 /* =========================================================================
-   GUESTBOOK — persisted with window.storage (shared, so all visitors see it)
+   GUESTBOOK — shared data lives in Supabase; "which I liked" is personal (localStorage)
    ========================================================================= */
-const GB_KEY = 'guestbook:entries';
 let gbEntries = [];
 let gbVisibleCount = 6;
-let visitorId = null;
-let likedIds = [];
-
-async function initVisitorIdentity(){
-  let vid = await storeGet('visitor:id', false);
-  if(!vid){ vid = uid(); await storeSet('visitor:id', vid, false); }
-  visitorId = vid;
-  const likes = await storeGet('visitor:likes', false);
-  likedIds = likes ? JSON.parse(likes) : [];
-}
+let likedIds = JSON.parse(lsGet('gb_liked_ids') || '[]');
 
 async function loadGuestbook(){
-  const raw = await storeGet(GB_KEY, true);
-  gbEntries = raw ? JSON.parse(raw) : [];
-  gbEntries.sort((a,b)=> b.ts - a.ts);
+  const rows = await sb('guestbook?select=*&order=created_at.desc');
+  gbEntries = (rows || []).map(r => ({
+    id: r.id, name: r.name, relationship: r.relationship,
+    message: r.message, likes: r.likes || 0, ts: new Date(r.created_at).getTime(),
+  }));
   renderGuestbook();
   updateStats();
-}
-async function saveGuestbook(){
-  await storeSet(GB_KEY, JSON.stringify(gbEntries), true);
 }
 
 function renderGuestbook(){
@@ -1171,16 +1182,12 @@ function renderGuestbook(){
       const entry = gbEntries.find(e=>e.id===id);
       if(!entry) return;
       const already = likedIds.includes(id);
-      if(already){
-        entry.likes = Math.max(0,(entry.likes||1)-1);
-        likedIds = likedIds.filter(x=>x!==id);
-      } else {
-        entry.likes = (entry.likes||0)+1;
-        likedIds.push(id);
-      }
-      await storeSet('visitor:likes', JSON.stringify(likedIds), false);
-      await saveGuestbook();
+      const newLikes = already ? Math.max(0,(entry.likes||1)-1) : (entry.likes||0)+1;
+      entry.likes = newLikes;
+      likedIds = already ? likedIds.filter(x=>x!==id) : [...likedIds, id];
+      lsSet('gb_liked_ids', JSON.stringify(likedIds));
       renderGuestbook();
+      await sb(`guestbook?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({ likes: newLikes }) });
     });
   });
 }
@@ -1202,9 +1209,21 @@ $('#gbSubmit').addEventListener('click', async ()=>{
   const okMsg = validateGbField('#f-msg', msg.length>=3);
   if(!(okName && okRel && okMsg)) return;
 
-  const entry = { id: uid(), name, relationship: rel, message: msg, ts: Date.now(), likes:0 };
-  gbEntries.unshift(entry);
-  await saveGuestbook();
+  const btn = $('#gbSubmit');
+  btn.disabled = true; const oldLabel = btn.textContent; btn.textContent = 'Posting…';
+  const inserted = await sb('guestbook', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ name, relationship: rel, message: msg }),
+  });
+  btn.disabled = false; btn.textContent = oldLabel;
+
+  if(!inserted){
+    alert("Sorry, your message couldn't be posted — please check your connection and try again.");
+    return;
+  }
+  const row = inserted[0];
+  gbEntries.unshift({ id: row.id, name: row.name, relationship: row.relationship, message: row.message, likes: 0, ts: new Date(row.created_at).getTime() });
   $('#in-name').value=''; $('#in-rel').value=''; $('#in-msg').value='';
   $('#gbSuccess').classList.add('show');
   setTimeout(()=> $('#gbSuccess').classList.remove('show'), 3200);
@@ -1219,19 +1238,20 @@ $('#gbSubmit').addEventListener('click', async ()=>{
    ========================================================================= */
 async function updateStats(){
   $('#statMessages').textContent = gbEntries.length;
-  const totals = await storeGet('stats:totalVisitors', true);
-  $('#statVisitors').textContent = totals ? totals : '0';
+  const rows = await sb('visitor_stats?id=eq.1&select=total_visitors');
+  const total = rows && rows[0] ? rows[0].total_visitors : 0;
+  $('#statVisitors').textContent = total;
   const days = Math.max(0, Math.floor((Date.now()-gradDate)/86400000));
   $('#statDays').textContent = Date.now() >= gradDate ? days : '—';
 }
 
 async function registerVisitorOnce(){
-  const seen = await storeGet('visitor:seen', false);
+  const seen = lsGet('visitor_seen');
   if(!seen){
-    await storeSet('visitor:seen', 'true', false);
-    let total = await storeGet('stats:totalVisitors', true);
-    total = total ? parseInt(total,10)+1 : 1;
-    await storeSet('stats:totalVisitors', String(total), true);
+    lsSet('visitor_seen', 'true');
+    const rows = await sb('visitor_stats?id=eq.1&select=total_visitors');
+    const current = rows && rows[0] ? rows[0].total_visitors : 0;
+    await sb('visitor_stats?id=eq.1', { method:'PATCH', body: JSON.stringify({ total_visitors: current + 1 }) });
     setTimeout(()=> burstConfetti(90), 900);
   }
 }
@@ -1308,16 +1328,17 @@ function renderAdminList(){
   `).join('');
   $$('[data-del]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      gbEntries = gbEntries.filter(e=>e.id!==btn.dataset.del);
-      await saveGuestbook();
+      const id = btn.dataset.del;
+      gbEntries = gbEntries.filter(e=>e.id!==id);
       renderAdminList(); renderGuestbook(); updateStats();
+      await sb(`guestbook?id=eq.${id}`, { method:'DELETE' });
     });
   });
 }
 $('#exportCsv').addEventListener('click', ()=>{
   const rows = [['Name','Relationship','Message','Likes','Date']];
   gbEntries.forEach(e=> rows.push([e.name, e.relationship, e.message.replace(/"/g,'""'), e.likes||0, new Date(e.ts).toISOString()]));
-  const csv = rows.map(r=> r.map(c=>`"${c}"`).join(',')).join('\\n');
+  const csv = rows.map(r=> r.map(c=>`"${c}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1329,7 +1350,6 @@ $('#exportCsv').addEventListener('click', ()=>{
    BOOT
    ========================================================================= */
 (async function boot(){
-  await initVisitorIdentity();
   await loadGuestbook();
   await registerVisitorOnce();
   observeReveals();
